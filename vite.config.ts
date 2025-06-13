@@ -12,12 +12,17 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['@emoji-mart/data'],
+      external: [
+        '@emoji-mart/react',
+        '@emoji-mart/data',
+        '@emoji-mart/data/sets/14/twitter.json'
+      ],
       output: {
-        manualChunks: {
-          'emoji-mart': ['@emoji-mart/react', '@emoji-mart/data'],
-        },
-      },
+        globals: {
+          '@emoji-mart/react': 'EmojiMartReact',
+          '@emoji-mart/data': 'EmojiMartData'
+        }
+      }
     },
   },
   optimizeDeps: {
