@@ -22,6 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import { Database } from '../../types/supabase';
 import { Input } from '../ui/Input';
+import { EmojiPicker } from '../ui/EmojiPicker';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Message = Database['public']['Tables']['messages']['Row'] & {
@@ -86,6 +87,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { typingUsers, startTyping, stopTyping } = useTyping(chatId, user?.id || '');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -523,6 +525,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage(prevMessage => prevMessage + emoji);
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -547,209 +553,129 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-black">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Button onClick={onBack} variant="ghost" size="sm" className="p-2 lg:hidden">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          
-          <div className="flex items-center space-x-3">
+      <div className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
+        <button
+          onClick={onBack}
+          className="lg:hidden p-2 -ml-2 mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div className="flex items-center flex-1 min-w-0">
+          <div className="flex-shrink-0 mr-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
-                {chatInfo?.avatar_url ? (
-                  <img
-                    src={chatInfo.avatar_url}
-                    alt={chatInfo.name}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  chatInfo?.name?.charAt(0)?.toUpperCase()
-                )}
-              </div>
-              {chatInfo?.type === 'direct' && chatInfo?.other_user?.is_online && (
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
+              <img
+                src={chatInfo?.other_user?.avatar_url || '/default-avatar.png'}
+                alt={chatInfo?.other_user?.full_name || 'User'}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              {chatInfo?.other_user?.is_online && (
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
               )}
             </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">
-                {chatInfo?.name}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {chatInfo?.type === 'direct' ? (
-                  chatInfo?.other_user?.is_online ? (
-                    'Online'
-                  ) : (
-                    `Last seen ${formatDistanceToNow(new Date(chatInfo?.other_user?.last_seen || ''), { addSuffix: true })}`
-                  )
-                ) : (
-                  `${chatInfo?.members.length} members`
-                )}
-              </p>
-            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+              {chatInfo?.other_user?.full_name || 'Loading...'}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+              {chatInfo?.other_user?.is_online ? 'Online' : 'Offline'}
+            </p>
           </div>
         </div>
-
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="sm" className="p-2">
-            <Phone className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="p-2">
-            <Video className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="p-2">
-            <Info className="h-4 w-4" />
-          </Button>
-          <div className="relative group">
-            <Button variant="ghost" size="sm" className="p-2">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-            <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-              <button
-                onClick={deleteAllMessages}
-                className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete All My Messages
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={onShowFriends}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <AnimatePresence>
-          {messages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className={`flex ${msg.sender.id === user?.id ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-xs lg:max-w-md group ${
-                msg.sender.id === user?.id ? 'order-2' : 'order-1'
-              }`}>
-                {msg.sender.id !== user?.id && (
-                  <div className="flex items-center space-x-2 mb-1">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
-                      {msg.sender.name?.charAt(0)?.toUpperCase()}
-                    </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {msg.sender.name}
-                    </span>
-                  </div>
-                )}
-                
-                <div className={`relative px-4 py-2 rounded-2xl ${
-                  msg.sender.id === user?.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                }`}>
-                  <p className="text-sm">{msg.content}</p>
-                  <p className={`text-xs mt-1 ${
-                    msg.sender.id === user?.id
-                      ? 'text-blue-100'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }`}>
-                    {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-                  </p>
-                  
-                  {msg.sender.id === user?.id && (
-                    <button
-                      onClick={() => deleteMessage(msg.id)}
-                      className="absolute -left-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-3 w-3 text-red-600" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {/* Typing indicator */}
-        {typingUsers.length > 0 && (
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
+        {messages.map((message) => (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            key={message.id}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex justify-start"
+            className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
           >
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-              </div>
+            <div
+              className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                message.sender_id === user?.id
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+              }`}
+            >
+              <p className="text-sm">{message.content}</p>
+              <p className="text-xs mt-1 opacity-70">
+                {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
             </div>
           </motion.div>
+        ))}
+        {typingUsers.length > 0 && (
+          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+            <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" />
+            <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" />
+            <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" />
+          </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <form onSubmit={handleSendMessage} className="flex items-end space-x-3">
-          <div className="flex-1">
-            <div className="relative">
-              <Input
-                type="text"
-                value={newMessage}
-                onChange={handleTyping}
-                placeholder="Type a message..."
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-2xl resize-none
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                  dark:bg-gray-800 dark:border-gray-600 dark:text-white
-                  dark:focus:ring-blue-400 dark:focus:border-transparent"
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
-                <button
-                  type="button"
-                  onClick={handleFileUpload}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                >
-                  <Smile className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <Button
-            type="submit"
-            disabled={!newMessage.trim() || sending}
-            variant="primary"
-            size="sm"
-            className="p-3"
+      {/* Input */}
+      <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
-            {sending ? (
-              <LoadingSpinner size="sm" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </form>
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          className="hidden"
-          onChange={(e) => {
-            // Handle file upload
-            console.log('File selected:', e.target.files?.[0]);
-          }}
-        />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Type a message..."
+            className="flex-1 p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={!newMessage.trim()}
+            className={`p-2 rounded-full ${
+              newMessage.trim()
+                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </div>
+        {showEmojiPicker && (
+          <div className="absolute bottom-20 right-4">
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -24,11 +24,13 @@ export interface ChatMember {
 
 export interface Chat {
   id: string;
-  type: 'direct' | 'group';
   name: string | null;
-  avatar_url: string | null;
+  type: 'direct' | 'group';
   created_at: string;
+  updated_at: string;
   role?: string;
+  members?: ChatMember[];
+  member_count?: number;
   last_message?: {
     id: string;
     content: string;
@@ -38,17 +40,16 @@ export interface Chat {
       id: string;
       full_name: string;
       username: string;
-      avatar_url: string | null;
+      avatar_url: string;
     };
-  } | null;
+  };
   other_user?: {
     id: string;
     full_name: string;
     username: string;
-    avatar_url: string | null;
+    avatar_url: string;
     is_online: boolean;
-    last_seen: string | null;
+    last_seen: string;
   };
-  members?: ChatMember[];
-  member_count?: number;
+  unread_count: number;
 } 
