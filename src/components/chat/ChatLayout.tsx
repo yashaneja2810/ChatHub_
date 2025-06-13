@@ -111,7 +111,7 @@ export const ChatLayout: React.FC = () => {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed inset-0 z-30 bg-white dark:bg-gray-800"
           >
-            <SettingsPanel />
+            <SettingsPanel onClose={() => setCurrentView('chats')} />
           </motion.div>
         )}
       </div>

@@ -23,6 +23,7 @@ import toast from 'react-hot-toast';
 import { Database } from '../../types/supabase';
 import { Input } from '../ui/Input';
 import { EmojiPicker } from '../ui/EmojiPicker';
+import { Avatar } from '../ui/Avatar';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Message = Database['public']['Tables']['messages']['Row'] & {
@@ -44,6 +45,7 @@ interface ChatInfo {
     username: string;
     is_online: boolean;
     last_seen: string;
+    avatar_url: string | null;
   };
   member_count?: number;
   members: {
@@ -86,7 +88,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
-  const { typingUsers, startTyping, stopTyping } = useTyping(chatId, user?.id || '');
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [typingUserNames, setTypingUserNames] = useState<{[key: string]: string}>({});
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
@@ -354,13 +358,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         throw chatError;
       }
 
-      console.log('Chat data:', chat);
-
       // Then, get the chat members with their profiles
       const { data: members, error: membersError } = await supabase
-          .from('chat_members')
-          .select(`
-            user_id,
+        .from('chat_members')
+        .select(`
+          user_id,
           role,
           profiles (
             id,
@@ -378,9 +380,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         throw membersError;
       }
 
-      console.log('Raw members data:', members);
-      console.log('Current user ID:', user?.id);
-
       if (!members || members.length === 0) {
         console.error('No members found for chat:', chatId);
         throw new Error('No members found in chat');
@@ -392,12 +391,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         // Find the other user in the chat
         const otherMember = typedMembers.find(m => m.user_id !== user?.id);
         
-        console.log('Other member search:', {
-          allMembers: typedMembers,
-          currentUserId: user?.id,
-          foundMember: otherMember
-        });
-
         if (!otherMember || !otherMember.profiles) {
           console.error('Other member not found:', {
             members: typedMembers,
@@ -417,6 +410,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             username: otherMember.profiles.username,
             is_online: otherMember.profiles.is_online,
             last_seen: otherMember.profiles.last_seen,
+            avatar_url: otherMember.profiles.avatar_url
           },
           members: [
             {
@@ -462,7 +456,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     if (!newMessage.trim() || !user) return;
 
     setSending(true);
-    stopTyping();
 
     try {
       const { error } = await supabase.from('messages').insert([
@@ -476,6 +469,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
       if (error) throw error;
 
       setNewMessage('');
+      // Clear typing status when sending message
+      updateTypingStatus(false);
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -484,9 +479,28 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e);
+    }
+  };
+
   const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
-    startTyping();
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set typing status to true
+    updateTypingStatus(true);
+
+    // Set a timeout to set typing status to false after 3 seconds of no typing
+    typingTimeoutRef.current = setTimeout(() => {
+      updateTypingStatus(false);
+    }, 3000);
   };
 
   const handleFileUpload = () => {
@@ -529,6 +543,55 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     setNewMessage(prevMessage => prevMessage + emoji);
   };
 
+  // Subscribe to typing status changes
+  useEffect(() => {
+    const typingChannel = supabase
+      .channel(`typing:${chatId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'typing_status',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        async (payload: any) => {
+          console.log('Typing status update:', payload);
+          if (payload.new && payload.new.user_id !== user?.id) {
+            if (payload.new.is_typing) {
+              setTypingUsers(prev => [...new Set([...prev, payload.new.user_id])]);
+            } else {
+              setTypingUsers(prev => prev.filter(id => id !== payload.new.user_id));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      typingChannel.unsubscribe();
+    };
+  }, [chatId, user?.id]);
+
+  const updateTypingStatus = async (isTyping: boolean) => {
+    if (!user) return;
+    
+    try {
+      console.log('Updating typing status:', { chatId, isTyping });
+      const { error } = await supabase.rpc('update_typing_status', {
+        p_chat_id: chatId,
+        p_is_typing: isTyping
+      });
+
+      if (error) {
+        console.error('Error updating typing status:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error updating typing status:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -566,23 +629,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         </button>
         <div className="flex items-center flex-1 min-w-0">
           <div className="flex-shrink-0 mr-3">
-            <div className="relative">
-              <img
-                src={chatInfo?.other_user?.avatar_url || '/default-avatar.png'}
-                alt={chatInfo?.other_user?.full_name || 'User'}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              {chatInfo?.other_user?.is_online && (
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
-              )}
-            </div>
+            <Avatar
+              src={chatInfo?.other_user?.avatar_url}
+              name={chatInfo?.other_user?.full_name || 'User'}
+              size="md"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
               {chatInfo?.other_user?.full_name || 'Loading...'}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-              {chatInfo?.other_user?.is_online ? 'Online' : 'Offline'}
+              {typingUsers.length > 0 ? `${chatInfo?.other_user?.full_name || 'Someone'} is typing...` : ''}
             </p>
           </div>
         </div>
@@ -607,7 +665,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <motion.div
             key={message.id}
@@ -629,13 +687,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             </div>
           </motion.div>
         ))}
-        {typingUsers.length > 0 && (
-          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-            <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" />
-            <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" />
-            <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full" />
-          </div>
-        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -652,8 +704,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
           <input
             type="text"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onChange={handleTyping}
+            onKeyDown={handleKeyPress}
             placeholder="Type a message..."
             className="flex-1 p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

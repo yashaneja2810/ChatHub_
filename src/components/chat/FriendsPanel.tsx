@@ -215,7 +215,7 @@ export const FriendsPanel: React.FC<FriendsPanelProps> = ({
         .limit(10);
 
       if (error) throw error;
-      
+
       // Filter out existing friends and pending requests
       const friendIds = friends.map(f => f.id);
       const requestIds = friendRequests.map(r => 
@@ -285,7 +285,7 @@ export const FriendsPanel: React.FC<FriendsPanelProps> = ({
         .from('friend_requests')
         .insert([
           {
-            sender_id: user.id,
+          sender_id: user.id,
             receiver_id: userId,
             status: 'pending'
           }
@@ -326,6 +326,20 @@ export const FriendsPanel: React.FC<FriendsPanelProps> = ({
       if (transactionError) throw transactionError;
 
       if (accept) {
+        // Create a direct chat
+        const { data: chatId, error: chatError } = await supabase
+          .rpc('create_direct_chat', {
+            p_user1_id: user.id,
+            p_user2_id: request.sender_id
+          });
+
+        if (chatError) {
+          console.error('Error creating chat:', chatError);
+        } else if (chatId) {
+          // Open the chat immediately after creation
+          onStartChat(chatId);
+        }
+
         toast.success('Friend request accepted!');
       } else {
         toast.success('Friend request rejected');
@@ -522,7 +536,7 @@ export const FriendsPanel: React.FC<FriendsPanelProps> = ({
                                 friend.last_seen
                               ).toLocaleTimeString()}`
                             : 'Offline'}
-                        </p>
+                          </p>
                       </div>
                     </div>
                   </button>
@@ -540,7 +554,7 @@ export const FriendsPanel: React.FC<FriendsPanelProps> = ({
                     No pending friend requests
                   </p>
               </div>
-            ) : (
+                ) : (
               <>
                 {receivedRequests.length > 0 && (
                   <div className="p-4">
@@ -685,7 +699,7 @@ export const FriendsPanel: React.FC<FriendsPanelProps> = ({
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                           @{user.username}
                         </p>
-                    </div>
+                      </div>
                     </div>
                     <Button
                       onClick={() => sendFriendRequest(user.id)}

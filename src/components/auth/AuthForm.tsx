@@ -142,12 +142,12 @@ export const AuthForm: React.FC = () => {
             )}
 
             <div>
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full"
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
                 disabled={loading}
-              >
+            >
                 {loading ? (
                   <LoadingSpinner size="sm" />
                 ) : isLogin ? (
@@ -155,7 +155,7 @@ export const AuthForm: React.FC = () => {
                 ) : (
                   'Sign up'
                 )}
-              </Button>
+            </Button>
             </div>
 
             <div className="text-center">

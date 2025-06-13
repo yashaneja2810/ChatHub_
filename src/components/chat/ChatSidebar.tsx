@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { Chat, ChatMember } from '../../types/chat';
 import { useAuth } from '../../contexts/AuthContext';
 import { Database } from '../../types/supabase';
+import { Avatar } from '../ui/Avatar';
 
 type ChatRow = Database['public']['Tables']['chats']['Row'];
 type ChatMemberRow = Database['public']['Tables']['chat_members']['Row'];
@@ -36,19 +37,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     let messageChannel: any = null;
     let chatChannel: any = null;
 
-    const fetchChats = async () => {
+  const fetchChats = async () => {
       try {
         setError(null);
         
         // Don't fetch if user is not loaded yet
         if (!user?.id) {
-          return;
-        }
+        return;
+      }
 
         // First get all chats the user is a member of
         const { data: chats, error: chatsError } = await supabase
           .from('chats')
-          .select(`
+        .select(`
             *,
             chat_members!inner (
               user_id,
@@ -64,11 +65,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             ),
             messages (
               id,
-              content,
-              created_at,
+          content,
+          created_at,
               sender_id
             )
-          `)
+        `)
           .order('updated_at', { ascending: false });
 
         if (chatsError) throw chatsError;
@@ -82,10 +83,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
           const lastMessage = chat.messages[0];
 
-          return {
-            id: chat.id,
+            return {
+              id: chat.id,
             name: chat.name,
-            type: chat.type,
+              type: chat.type,
             created_at: chat.created_at,
             updated_at: chat.updated_at,
             other_user: otherUser,
@@ -95,15 +96,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         });
 
         if (mounted) {
-          setChats(processedChats);
+      setChats(processedChats);
         }
       } catch (err) {
         console.error('Error fetching chats:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch chats');
-      } finally {
+    } finally {
         if (mounted) {
-          setLoading(false);
-        }
+      setLoading(false);
+    }
       }
     };
 
@@ -210,7 +211,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               strokeLinejoin="round"
               strokeWidth={2}
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
+          />
           </svg>
         </div>
       </div>
@@ -252,22 +253,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 key={chat.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
+                className={`flex items-center p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
                   selectedChatId === chat.id ? 'bg-gray-100 dark:bg-gray-700' : ''
                 }`}
                 onClick={() => onSelectChat(chat.id)}
               >
                 <div className="flex-shrink-0 mr-3">
-                  <div className="relative">
-                    <img
-                      src={chat.other_user?.avatar_url || '/default-avatar.png'}
-                      alt={chat.other_user?.full_name || 'User'}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    {chat.other_user?.is_online && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
-                    )}
-                  </div>
+                  <Avatar
+                    src={chat.other_user?.avatar_url}
+                    name={chat.other_user?.full_name || 'Unknown User'}
+                    size="md"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">

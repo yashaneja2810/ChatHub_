@@ -55,7 +55,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <Routes>
+            <Routes>
       <Route
         path="/"
         element={
@@ -84,8 +84,8 @@ const AppRoutes: React.FC = () => {
           )
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
   );
 };
 
@@ -95,8 +95,8 @@ const App: React.FC = () => {
       <ThemeProvider>
         <AuthProvider>
           <AppRoutes />
-        </AuthProvider>
-      </ThemeProvider>
+      </AuthProvider>
+    </ThemeProvider>
     </Router>
   );
 };

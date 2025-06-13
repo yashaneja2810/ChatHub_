@@ -9,7 +9,8 @@ import {
   Palette,
   Globe,
   HelpCircle,
-  LogOut
+  LogOut,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -18,7 +19,11 @@ import { Input } from '../ui/Input';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import toast from 'react-hot-toast';
 
-export const SettingsPanel: React.FC = () => {
+interface SettingsPanelProps {
+  onClose: () => void;
+}
+
+export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const [activeSection, setActiveSection] = useState<'profile' | 'notifications' | 'privacy' | 'appearance'>('profile');
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -288,64 +293,79 @@ export const SettingsPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex bg-gray-50 dark:bg-black">
-      {/* Sidebar */}
-      <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
-        <div className="p-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="h-full flex flex-col">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Settings
           </h2>
-          <nav className="space-y-1">
-            {settingSections.map((section) => {
-              const Icon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id as any)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === section.id
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <Icon className="mr-3 h-4 w-4" />
-                  {section.label}
-                </button>
-              );
-            })}
-            
-            <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-              <button className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 rounded-lg transition-colors">
-                <Globe className="mr-3 h-4 w-4" />
-                Language
-              </button>
-              <button className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 rounded-lg transition-colors">
-                <HelpCircle className="mr-3 h-4 w-4" />
-                Help & Support
-              </button>
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-              >
-                <LogOut className="mr-3 h-4 w-4" />
-                Sign Out
-              </button>
-            </div>
-          </nav>
         </div>
       </div>
+      <div className="flex-1 flex bg-gray-50 dark:bg-black">
+        {/* Sidebar */}
+        <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+          <div className="p-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Settings
+            </h2>
+            <nav className="space-y-1">
+              {settingSections.map((section) => {
+                const Icon = section.icon;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id as any)}
+                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      activeSection === section.id
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <Icon className="mr-3 h-4 w-4" />
+                    {section.label}
+                  </button>
+                );
+              })}
+              
+              <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                <button className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 rounded-lg transition-colors">
+                  <Globe className="mr-3 h-4 w-4" />
+                  Language
+                </button>
+                <button className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 rounded-lg transition-colors">
+                  <HelpCircle className="mr-3 h-4 w-4" />
+                  Help & Support
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                  <LogOut className="mr-3 h-4 w-4" />
+                  Sign Out
+                </button>
+              </div>
+            </nav>
+          </div>
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 p-6">
-        <motion.div
-          key={activeSection}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.2 }}
-          className="max-w-2xl"
-        >
-          {renderContent()}
-        </motion.div>
+        {/* Content */}
+        <div className="flex-1 p-6">
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2 }}
+            className="max-w-2xl"
+          >
+            {renderContent()}
+          </motion.div>
+        </div>
       </div>
     </div>
   );

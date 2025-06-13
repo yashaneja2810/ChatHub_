@@ -35,13 +35,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+        setUser(session?.user ?? null);
       if (session?.user?.id) {
         fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
     });
 
     return () => {
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      setProfile(data);
+        setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
