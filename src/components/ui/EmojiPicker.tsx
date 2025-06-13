@@ -1,6 +1,6 @@
 import React from "react";
 import Picker from "@emoji-mart/react";
-import data from "@emoji-mart/data";
+import data from "@emoji-mart/data/sets/14/twitter.json";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: any) => void;

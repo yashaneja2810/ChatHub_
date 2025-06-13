@@ -1,10 +1,26 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      external: ['@emoji-mart/data'],
+      output: {
+        manualChunks: {
+          'emoji-mart': ['@emoji-mart/react', '@emoji-mart/data'],
+        },
+      },
+    },
+  },
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    include: ['@emoji-mart/react', '@emoji-mart/data'],
   },
 });
