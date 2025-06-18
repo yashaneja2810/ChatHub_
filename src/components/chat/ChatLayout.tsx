@@ -24,16 +24,10 @@ export const ChatLayout: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Chat</h1>
-        </div>
-      </header>
-
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black">
+      {/* Header removed */}
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden rounded-3xl m-6 shadow-2xl bg-white/70 dark:bg-black/80 backdrop-blur-2xl mt-0">
         {/* Chats Panel */}
         <AnimatePresence mode="wait">
           {(!selectedChat || window.innerWidth >= 1024) && (
@@ -43,9 +37,9 @@ export const ChatLayout: React.FC = () => {
               exit={{ x: -300, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className={`
-                fixed lg:relative inset-y-0 left-0 z-20
-                w-full lg:w-80 h-[calc(100vh-3.5rem)]
-                bg-white dark:bg-gray-800
+                lg:relative
+                w-full lg:w-80 h-full
+                bg-white/60 dark:bg-black/80
                 border-r border-gray-200 dark:border-gray-700
                 ${selectedChat ? 'hidden lg:block' : 'block'}
               `}
@@ -69,9 +63,9 @@ export const ChatLayout: React.FC = () => {
               exit={{ x: 300, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className={`
-                fixed lg:relative inset-0 z-10
-                w-full h-[calc(100vh-3.5rem)]
-                bg-white dark:bg-gray-800
+                lg:relative
+                w-full h-full
+                bg-white/60 dark:bg-black/80
                 ${!selectedChat ? 'hidden lg:block' : 'block'}
               `}
             >

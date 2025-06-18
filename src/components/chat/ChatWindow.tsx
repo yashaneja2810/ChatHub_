@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -10,7 +10,9 @@ import {
   Phone,
   Video,
   Info,
-  Users
+  Users,
+  Image as ImageIcon,
+  MessageCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,12 +20,13 @@ import { useRealtime } from '../../hooks/useRealtime';
 import { useTyping } from '../../hooks/useTyping';
 import { Button } from '../ui/Button';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format, isSameDay } from 'date-fns';
 import toast from 'react-hot-toast';
 import { Database } from '../../types/supabase';
 import { Input } from '../ui/Input';
 import { EmojiPicker } from '../ui/EmojiPicker';
 import { Avatar } from '../ui/Avatar';
+import { Modal } from '../ui/Modal';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Message = Database['public']['Tables']['messages']['Row'] & {
@@ -92,6 +95,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   const [typingUserNames, setTypingUserNames] = useState<{[key: string]: string}>({});
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
+  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [mediaModal, setMediaModal] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -112,6 +121,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
           .select(`
             id,
             content,
+            type,
             created_at,
             sender_id,
             chat_id,
@@ -133,6 +143,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
               (message) => ({
                 id: message.id,
                 content: message.content,
+                type: message.type,
                 created_at: message.created_at,
                 sender_id: message.sender_id,
                 chat_id: message.chat_id,
@@ -167,6 +178,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
           .select(`
             id,
             content,
+            type,
             created_at,
             sender_id,
             chat_id,
@@ -188,6 +200,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
               (message) => ({
                 id: message.id,
                 content: message.content,
+                type: message.type,
                 created_at: message.created_at,
                 sender_id: message.sender_id,
                 chat_id: message.chat_id,
@@ -248,6 +261,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                 const newMessage = {
                   id: payload.new.id,
                   content: payload.new.content,
+                  type: payload.new.type,
                   created_at: payload.new.created_at,
                   sender_id: payload.new.sender_id,
                   chat_id: payload.new.chat_id,
@@ -266,6 +280,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             } catch (error) {
               console.error('Error handling new message:', error);
             }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        (payload) => {
+          console.log('Message deleted:', payload);
+          if (mounted) {
+            setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
           }
         }
       )
@@ -295,6 +324,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     },
     undefined,
     (payload) => {
+      // Handle message deletion for both sender and receiver
       setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
     }
   );
@@ -305,6 +335,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
       .select(`
         id,
         content,
+        type,
         created_at,
         sender_id,
         chat_id,
@@ -330,6 +361,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         {
           id: message.id,
           content: message.content,
+          type: message.type,
           created_at: message.created_at,
           sender_id: message.sender_id,
           chat_id: message.chat_id,
@@ -516,6 +548,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         .eq('sender_id', user?.id);
 
       if (error) throw error;
+      // Remove the message from the local state
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
       toast.success('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
@@ -592,6 +626,97 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     }
   };
 
+  // Helper: handle long press or right click
+  const handleMessageMouseDown = (messageId: string, isOwn: boolean) => {
+    if (!isOwn) return;
+    longPressTimeout.current = setTimeout(() => {
+      setSelectionMode(true);
+      setSelectedMessages([messageId]);
+    }, 500); // 500ms for long press
+  };
+  const handleMessageMouseUp = () => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+  };
+  const handleMessageContextMenu = (e: React.MouseEvent, messageId: string, isOwn: boolean) => {
+    if (!isOwn) return;
+    e.preventDefault();
+    setSelectionMode(true);
+    setSelectedMessages([messageId]);
+  };
+  const handleSelectMessage = (messageId: string) => {
+    setSelectedMessages((prev) =>
+      prev.includes(messageId)
+        ? prev.filter((id) => id !== messageId)
+        : [...prev, messageId]
+    );
+  };
+  const handleDeleteSelected = async () => {
+    for (const id of selectedMessages) {
+      await deleteMessage(id);
+    }
+    setSelectedMessages([]);
+    setSelectionMode(false);
+  };
+  const handleCancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedMessages([]);
+  };
+
+  const handleHeaderMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !chatId || !user) return;
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      if (!isImage && !isVideo) {
+        toast.error('Only images and videos are supported');
+        setUploadingImage(false);
+        return;
+      }
+      const filePath = `${chatId}/${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('chat-media').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('chat-media').getPublicUrl(filePath);
+      const publicUrl = data.publicUrl;
+      const type = isImage ? 'image' : 'video';
+      const { error } = await supabase.from('messages').insert([
+        {
+          chat_id: chatId,
+          sender_id: user.id,
+          content: publicUrl,
+          type,
+        },
+      ]);
+      if (error) throw error;
+      toast.success(`${isImage ? 'Image' : 'Video'} sent!`);
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      toast.error('Failed to send file');
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  };
+
+  const handleOpenMedia = (url: string, type: 'image' | 'video') => {
+    setMediaModal({ url, type });
+  };
+  const handleCloseMedia = () => setMediaModal(null);
+  const handleDownloadMedia = () => {
+    if (!mediaModal) return;
+    const link = document.createElement('a');
+    link.href = mediaModal.url;
+    link.download = mediaModal.url.split('/').pop() || 'media';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -616,91 +741,185 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
-      <div className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, type: 'spring' }}
+        className="h-20 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-purple-900 dark:via-blue-900 dark:to-black rounded-t-2xl flex items-center px-8 shadow-xl relative z-10"
+        style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
+      >
         <button
           onClick={onBack}
-          className="lg:hidden p-2 -ml-2 mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          className="lg:hidden p-2 -ml-2 mr-4 text-white hover:text-gray-200 bg-white/10 rounded-full backdrop-blur"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="flex items-center flex-1 min-w-0">
-          <div className="flex-shrink-0 mr-3">
+          <div className="flex-shrink-0 mr-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 dark:from-purple-900 dark:via-blue-900 dark:to-black p-1 animate-pulse">
             <Avatar
               src={chatInfo?.other_user?.avatar_url}
               name={chatInfo?.other_user?.full_name || 'User'}
               size="md"
             />
+            </div>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+            <h2 className="text-xl font-bold text-white truncate drop-shadow-lg">
               {chatInfo?.other_user?.full_name || 'Loading...'}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-              {typingUsers.length > 0 ? `${chatInfo?.other_user?.full_name || 'Someone'} is typing...` : ''}
-            </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
-          <button
-            onClick={onShowFriends}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
+      </motion.div>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
+        {loading ? (
+          <div className="flex justify-center items-center h-full">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-full">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+            <MessageCircle className="w-12 h-12 mb-4 opacity-50" />
+            <p>No messages yet. Start the conversation!</p>
+          </div>
+        ) : (
+          messages.map((message, index) => {
+            const isOwn = message.sender_id === user?.id;
+            const isSelected = selectedMessages.includes(message.id);
+            const showDate = index === 0 || !isSameDay(new Date(message.created_at), new Date(messages[index - 1].created_at));
+            
+            return (
+              <React.Fragment key={message.id}>
+                {showDate && (
+                  <div className="flex justify-center my-4">
+                    <div className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300">
+                      {format(new Date(message.created_at), 'MMMM d, yyyy')}
+                    </div>
+                  </div>
+                )}
           <motion.div
-            key={message.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                  onMouseDown={() => handleMessageMouseDown(message.id, isOwn)}
+                  onMouseUp={handleMessageMouseUp}
+                  onMouseLeave={handleMessageMouseUp}
+                  onContextMenu={(e) => handleMessageContextMenu(e, message.id, isOwn)}
           >
             <div
-              className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                message.sender_id === user?.id
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
-              }`}
-            >
-              <p className="text-sm">{message.content}</p>
-              <p className="text-xs mt-1 opacity-70">
+                    className={`max-w-[70%] rounded-2xl px-3 py-2 relative transition-shadow duration-150 shadow-md backdrop-blur-lg ${
+                      isOwn
+                        ? isSelected
+                          ? 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white ring-2 ring-pink-400'
+                          : 'bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 text-white'
+                        : 'bg-white/80 dark:bg-black/80 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800'
+                    }`}
+                    style={{ boxShadow: isSelected ? '0 0 0 2px #ef4444' : undefined }}
+                  >
+                    {selectionMode && isOwn && (
+                      <button
+                        className={`absolute -left-7 top-1 w-5 h-5 rounded-full border-2 border-red-500 flex items-center justify-center ${isSelected ? 'bg-red-500' : 'bg-white'}`}
+                        onClick={(e) => { e.stopPropagation(); handleSelectMessage(message.id); }}
+                        tabIndex={0}
+                        aria-label={isSelected ? 'Deselect message' : 'Select message'}
+                      >
+                        {isSelected ? (
+                          <svg width="14" height="14" viewBox="0 0 20 20">
+                            <polyline points="4 11 8 15 16 6" fill="none" stroke="white" strokeWidth="2"/>
+                          </svg>
+                        ) : null}
+                      </button>
+                    )}
+                    {/* Message content rendering */}
+                    {message.type === 'image' ? (
+                      <img
+                        src={message.content}
+                        alt="sent media"
+                        className="max-w-[180px] max-h-40 rounded-lg object-cover mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                        style={{ display: 'block' }}
+                        onClick={() => handleOpenMedia(message.content, 'image')}
+                      />
+                    ) : message.type === 'video' ? (
+                      <video
+                        src={message.content}
+                        controls
+                        className="max-w-[180px] max-h-40 rounded-lg mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                        style={{ display: 'block' }}
+                        onClick={() => handleOpenMedia(message.content, 'video')}
+                      />
+                    ) : (
+                      <p className="text-sm leading-snug animate-fade-in" style={{wordBreak: 'break-word'}}>{message.content}</p>
+                    )}
+                    <p className="text-xs mt-1 opacity-70 text-right">
                 {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </motion.div>
-        ))}
+              </React.Fragment>
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
+        {/* Typing indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-center space-x-2 mt-4 animate-fade-in">
+            <div className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 animate-pulse" />
+            <div className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 animate-pulse delay-150" />
+            <div className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 animate-pulse delay-300" />
+          </div>
+        )}
       </div>
+
+      {/* Floating delete/cancel bar for selection mode */}
+      {selectionMode && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 flex items-center space-x-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-full px-4 py-2 shadow-lg">
+          <span className="text-sm text-gray-700 dark:text-gray-200">{selectedMessages.length} selected</span>
+          <button
+            className="ml-2 p-2 rounded-full bg-red-500 text-white hover:bg-red-600 focus:outline-none"
+            onClick={handleDeleteSelected}
+            disabled={selectedMessages.length === 0}
+            title="Delete selected messages"
+          >
+            <Trash2 size={18} />
+          </button>
+          <button
+            className="ml-2 p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none"
+            onClick={handleCancelSelection}
+            title="Cancel selection"
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20"><line x1="5" y1="5" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/><line x1="15" y1="5" x2="5" y2="15" stroke="currentColor" strokeWidth="2"/></svg>
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            className="p-2 bg-white/70 dark:bg-black/70 rounded-full text-blue-500 dark:text-purple-400 hover:bg-blue-100 dark:hover:bg-purple-900 shadow transition-all duration-200"
+            disabled={uploadingImage}
+            title="Send image or video"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <ImageIcon className="h-5 w-5" />
           </button>
+          <input
+            type="file"
+            accept="image/*,video/*"
+            ref={imageInputRef}
+            onChange={handleHeaderMediaChange}
+            className="hidden"
+          />
           <input
             type="text"
             value={newMessage}
@@ -723,12 +942,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             </svg>
           </button>
         </div>
-        {showEmojiPicker && (
-          <div className="absolute bottom-20 right-4">
-            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
-          </div>
-        )}
       </div>
+
+      {/* Media Modal */}
+      {mediaModal && (
+        <Modal isOpen={!!mediaModal} onClose={handleCloseMedia}>
+          <div className="flex flex-col items-center justify-center p-4">
+            {mediaModal.type === 'image' ? (
+              <img src={mediaModal.url} alt="media" className="max-w-[90vw] max-h-[70vh] rounded-xl shadow-2xl" />
+            ) : (
+              <video src={mediaModal.url} controls autoPlay className="max-w-[90vw] max-h-[70vh] rounded-xl shadow-2xl" />
+            )}
+            <a
+              href={mediaModal.url}
+              download={mediaModal.url.split('/').pop() || 'media'}
+              className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-pink-500 text-white rounded-lg shadow hover:scale-105 transition text-center"
+            >
+              Download
+            </a>
+          </div>
+        </Modal>
+        )}
     </div>
   );
 };

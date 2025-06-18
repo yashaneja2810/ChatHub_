@@ -189,16 +189,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+    <div className="flex flex-col h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl rounded-l-2xl shadow-2xl overflow-hidden">
       {/* Search Bar */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-black/70 rounded-tl-2xl">
         <div className="relative">
           <input
             type="text"
             placeholder="Search chats..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white/80 dark:bg-black/80 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 focus:border-transparent shadow-md transition-all duration-300"
           />
           <svg
             className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
@@ -217,7 +217,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <LoadingSpinner size="md" />
@@ -247,52 +247,26 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredChats.map((chat) => (
+          <div className="space-y-2">
+            {filteredChats.map((chat, idx) => (
               <motion.div
                 key={chat.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex items-center p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                  selectedChatId === chat.id ? 'bg-gray-100 dark:bg-gray-700' : ''
-                }`}
+                transition={{ delay: idx * 0.04, type: 'spring', stiffness: 120 }}
+                className={`cursor-pointer rounded-2xl px-4 py-3 flex items-center space-x-3 transition-all duration-200 shadow-md bg-white/80 dark:bg-black/80 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 dark:hover:from-purple-900 dark:hover:to-black hover:text-white ${selectedChatId === chat.id ? 'ring-2 ring-blue-400 dark:ring-purple-500' : ''}`}
                 onClick={() => onSelectChat(chat.id)}
               >
-                <div className="flex-shrink-0 mr-3">
-                  <Avatar
-                    src={chat.other_user?.avatar_url}
-                    name={chat.other_user?.full_name || 'Unknown User'}
-                    size="md"
-                  />
-                </div>
+                <Avatar
+                  src={chat.other_user?.avatar_url}
+                  name={chat.other_user?.full_name || chat.name || 'User'}
+                  size="md"
+                />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {chat.other_user?.full_name || 'Unknown User'}
-                    </h3>
-                    {chat.last_message && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(chat.last_message.created_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {chat.last_message
-                        ? chat.last_message.sender_id === user?.id
-                          ? `You: ${chat.last_message.content}`
-                          : chat.last_message.content
-                        : 'No messages yet'}
-                    </p>
-                    {chat.unread_count > 0 && (
-                      <span className="ml-2 px-2 py-1 text-xs font-medium text-white bg-blue-500 rounded-full">
-                        {chat.unread_count}
-                      </span>
-                    )}
-                  </div>
+                  <div className="font-semibold truncate text-base">{chat.name || chat.other_user?.full_name}</div>
+                  {chat.last_message && (
+                    <div className="text-xs truncate opacity-70 mt-1">{chat.last_message.content}</div>
+                  )}
                 </div>
               </motion.div>
             ))}

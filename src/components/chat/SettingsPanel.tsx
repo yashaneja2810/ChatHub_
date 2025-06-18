@@ -307,9 +307,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
           </h2>
         </div>
       </div>
+
+      {/* Mobile Navigation */}
+      <div className="lg:hidden border-b border-gray-200 dark:border-gray-800">
+        <div className="flex overflow-x-auto hide-scrollbar">
+          {settingSections.map((section) => {
+            const Icon = section.icon;
+            return (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id as any)}
+                className={`flex items-center px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  activeSection === section.id
+                    ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                }`}
+              >
+                <Icon className="mr-2 h-4 w-4" />
+                {section.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex-1 flex bg-gray-50 dark:bg-black">
-        {/* Sidebar */}
-        <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
           <div className="p-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Settings
@@ -355,16 +379,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
-            className="max-w-2xl"
+            className="max-w-2xl mx-auto"
           >
             {renderContent()}
           </motion.div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="flex justify-around p-2">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </button>
+          <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+            <HelpCircle className="mr-2 h-4 w-4" />
+            Help
+          </button>
         </div>
       </div>
     </div>

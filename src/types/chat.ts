@@ -4,6 +4,7 @@ export interface Message {
   sender_id: string;
   content: string;
   created_at: string;
+  type?: 'text' | 'image' | 'video';
   sender: {
     id: string;
     name: string;
