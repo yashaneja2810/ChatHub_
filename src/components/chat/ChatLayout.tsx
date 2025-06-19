@@ -33,7 +33,7 @@ export const ChatLayout: React.FC = () => {
           sm:m-1 sm:rounded-lg sm:shadow-lg
           md:m-2 md:rounded-xl md:shadow-xl
           lg:m-4 lg:rounded-2xl lg:shadow-2xl
-          bg-white/70 dark:bg-black/80 backdrop-blur-2xl mt-0"
+          bg-white/70 dark:bg-black/80 backdrop-blur-2xl mt-0 relative"
       >
         {/* Chats Panel */}
         <AnimatePresence mode="wait">

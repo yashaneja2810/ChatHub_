@@ -94,14 +94,18 @@ const App: React.FC = () => {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ThemeProvider>
         <AuthProvider>
-          <div className="w-full z-50 sticky top-0">
-            <div className="w-full flex justify-center items-center py-4 bg-white/70 dark:bg-black/70 backdrop-blur-xl shadow-md">
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-blue-300 dark:via-purple-400 dark:to-pink-400 drop-shadow-lg tracking-tight select-none animate-fade-in">
-                ChatHub
-              </h1>
+          <div className="h-screen w-full flex flex-col overflow-hidden">
+            <div className="w-full z-50 sticky top-0">
+              <div className="w-full flex justify-center items-center py-4 bg-white/70 dark:bg-black/70 backdrop-blur-xl shadow-md">
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-blue-300 dark:via-purple-400 dark:to-pink-400 drop-shadow-lg tracking-tight select-none animate-fade-in">
+                  ChatHub
+                </h1>
+              </div>
+            </div>
+            <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+              <AppRoutes />
             </div>
           </div>
-          <AppRoutes />
         </AuthProvider>
       </ThemeProvider>
     </Router>

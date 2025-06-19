@@ -945,7 +945,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   }
 
   return (
-    <div className="flex flex-col min-w-0 min-h-0 h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden">
+    <div className="flex flex-col min-w-0 min-h-0 h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden h-full">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -1022,7 +1022,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         )}
       </motion.div>
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-1 sm:p-2 space-y-2" style={{ paddingTop: '3.5rem' }}>
+      <div className="flex-1 h-0 overflow-y-auto p-1 sm:p-2 space-y-2">
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
