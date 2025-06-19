@@ -43,7 +43,12 @@ export const AuthForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-black px-2 sm:px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-black px-2 sm:px-4">
+      <div className="w-full flex justify-center items-center py-6 mb-2 bg-white/70 dark:bg-black/70 backdrop-blur-xl rounded-b-2xl shadow-md">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-blue-300 dark:via-purple-400 dark:to-pink-400 drop-shadow-lg tracking-tight select-none animate-fade-in">
+          ChatHub
+        </h1>
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
