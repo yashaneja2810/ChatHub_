@@ -24,11 +24,11 @@ export const ChatLayout: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black">
+    <div className="h-screen min-h-0 min-w-0 flex flex-col bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black">
       {/* Header removed */}
       {/* Main Content */}
       <div
-        className="flex-1 flex overflow-hidden
+        className="flex-1 min-h-0 min-w-0 flex overflow-hidden
           m-0 rounded-none shadow-none
           sm:m-2 sm:rounded-xl sm:shadow-xl
           md:m-4 md:rounded-2xl md:shadow-2xl
@@ -45,7 +45,7 @@ export const ChatLayout: React.FC = () => {
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className={`
                 lg:relative
-                w-full lg:w-80 h-full
+                w-full min-w-0 h-full min-h-0
                 bg-white/60 dark:bg-black/80
                 border-r border-gray-200 dark:border-gray-700
                 ${selectedChat ? 'hidden lg:block' : 'block'}
@@ -71,7 +71,7 @@ export const ChatLayout: React.FC = () => {
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className={`
                 lg:relative
-                w-full h-full
+                w-full min-w-0 h-full min-h-0
                 bg-white/60 dark:bg-black/80
                 ${!selectedChat ? 'hidden lg:block' : 'block'}
               `}

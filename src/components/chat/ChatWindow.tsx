@@ -741,7 +741,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   }
 
   return (
-    <div className="flex flex-col h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden">
+    <div className="flex flex-col min-w-0 min-h-0 h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

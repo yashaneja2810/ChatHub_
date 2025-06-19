@@ -189,7 +189,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl
+    <div className="flex flex-col min-w-0 min-h-0 h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl
       w-full rounded-none shadow-none p-0
       lg:w-80 lg:rounded-l-2xl lg:shadow-2xl lg:p-0 overflow-hidden">
       {/* Search Bar */}
