@@ -816,7 +816,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                   onContextMenu={(e) => handleMessageContextMenu(e, message.id, isOwn)}
           >
             <div
-                    className={`max-w-[95vw] sm:max-w-[70%] rounded-xl sm:rounded-2xl px-2 sm:px-3 py-2 relative transition-shadow duration-150 shadow-md backdrop-blur-lg ${
+                    className={`max-w-[85vw] sm:max-w-[60%] rounded-xl sm:rounded-2xl px-2 sm:px-3 py-2 relative transition-shadow duration-150 shadow-md backdrop-blur-lg ${
                       isOwn
                         ? isSelected
                           ? 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white ring-2 ring-pink-400'
@@ -902,7 +902,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
       )}
 
       {/* Input */}
-      <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 z-20">
         <div className="flex items-center space-x-2">
           <button
             type="button"
