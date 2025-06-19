@@ -27,7 +27,14 @@ export const ChatLayout: React.FC = () => {
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black">
       {/* Header removed */}
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden rounded-3xl m-6 shadow-2xl bg-white/70 dark:bg-black/80 backdrop-blur-2xl mt-0">
+      <div
+        className="flex-1 flex overflow-hidden
+          m-0 rounded-none shadow-none
+          sm:m-2 sm:rounded-xl sm:shadow-xl
+          md:m-4 md:rounded-2xl md:shadow-2xl
+          lg:m-6 lg:rounded-3xl lg:shadow-2xl
+          bg-white/70 dark:bg-black/80 backdrop-blur-2xl mt-0"
+      >
         {/* Chats Panel */}
         <AnimatePresence mode="wait">
           {(!selectedChat || window.innerWidth >= 1024) && (

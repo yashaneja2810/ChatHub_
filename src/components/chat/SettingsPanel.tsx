@@ -293,8 +293,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+    <div className="h-full flex flex-col w-full">
+      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <button
             onClick={onClose}
@@ -307,7 +307,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
           </h2>
         </div>
       </div>
-
       {/* Mobile Navigation */}
       <div className="lg:hidden border-b border-gray-200 dark:border-gray-800">
         <div className="flex overflow-x-auto hide-scrollbar">
@@ -330,8 +329,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
           })}
         </div>
       </div>
-
-      <div className="flex-1 flex bg-gray-50 dark:bg-black">
+      <div className="flex-1 flex bg-gray-50 dark:bg-black w-full h-full">
         {/* Desktop Sidebar */}
         <div className="hidden lg:block w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
           <div className="p-4">
@@ -377,21 +375,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             </nav>
           </div>
         </div>
-
         {/* Content */}
-        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <div className="flex-1 p-2 sm:p-4 lg:p-6 overflow-y-auto w-full max-w-full">
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
-            className="max-w-2xl mx-auto"
+            className="max-w-full sm:max-w-2xl mx-auto"
           >
             {renderContent()}
           </motion.div>
         </div>
       </div>
-
       {/* Mobile Bottom Navigation */}
       <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="flex justify-around p-2">

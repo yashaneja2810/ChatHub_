@@ -747,7 +747,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, type: 'spring' }}
-        className="h-20 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-purple-900 dark:via-blue-900 dark:to-black rounded-t-2xl flex items-center px-8 shadow-xl relative z-10"
+        className="h-20 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-purple-900 dark:via-blue-900 dark:to-black flex items-center px-4 sm:px-8 rounded-t-none sm:rounded-t-2xl shadow-none sm:shadow-xl relative z-10"
         style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
       >
         <button
@@ -776,7 +776,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         </div>
       </motion.div>
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4">
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
@@ -816,7 +816,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                   onContextMenu={(e) => handleMessageContextMenu(e, message.id, isOwn)}
           >
             <div
-                    className={`max-w-[70%] rounded-2xl px-3 py-2 relative transition-shadow duration-150 shadow-md backdrop-blur-lg ${
+                    className={`max-w-[95vw] sm:max-w-[70%] rounded-xl sm:rounded-2xl px-2 sm:px-3 py-2 relative transition-shadow duration-150 shadow-md backdrop-blur-lg ${
                       isOwn
                         ? isSelected
                           ? 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white ring-2 ring-pink-400'
@@ -844,7 +844,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                       <img
                         src={message.content}
                         alt="sent media"
-                        className="max-w-[180px] max-h-40 rounded-lg object-cover mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                        className="max-w-[70vw] sm:max-w-[180px] max-h-40 rounded-lg object-cover mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
                         style={{ display: 'block' }}
                         onClick={() => handleOpenMedia(message.content, 'image')}
                       />
@@ -852,12 +852,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                       <video
                         src={message.content}
                         controls
-                        className="max-w-[180px] max-h-40 rounded-lg mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                        className="max-w-[70vw] sm:max-w-[180px] max-h-40 rounded-lg mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
                         style={{ display: 'block' }}
                         onClick={() => handleOpenMedia(message.content, 'video')}
                       />
                     ) : (
-                      <p className="text-sm leading-snug animate-fade-in" style={{wordBreak: 'break-word'}}>{message.content}</p>
+                      <p className="text-sm leading-snug animate-fade-in break-words">{message.content}</p>
                     )}
                     <p className="text-xs mt-1 opacity-70 text-right">
                 {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -902,7 +902,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
       )}
 
       {/* Input */}
-      <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2">
           <button
             type="button"

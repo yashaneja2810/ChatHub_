@@ -33,13 +33,13 @@ export const ProfileSetup: React.FC = () => {
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black px-2 sm:px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full space-y-8"
+        className="w-full max-w-xs sm:max-w-md space-y-8"
       >
-        <div className="bg-white/70 dark:bg-black/80 backdrop-blur-2xl rounded-3xl shadow-2xl p-10">
+        <div className="bg-white/70 dark:bg-black/80 backdrop-blur-2xl rounded-3xl shadow-2xl p-4 sm:p-10">
           <div className="text-center">
             <motion.div
               initial={{ scale: 0 }}

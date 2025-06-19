@@ -189,9 +189,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl rounded-l-2xl shadow-2xl overflow-hidden">
+    <div className="flex flex-col h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl
+      w-full rounded-none shadow-none p-0
+      lg:w-80 lg:rounded-l-2xl lg:shadow-2xl lg:p-0 overflow-hidden">
       {/* Search Bar */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-black/70 rounded-tl-2xl">
+      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-black/70 rounded-tl-none lg:rounded-tl-2xl">
         <div className="relative">
           <input
             type="text"
@@ -217,7 +219,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+      <div className="flex-1 overflow-y-auto p-1 sm:p-2 space-y-2">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <LoadingSpinner size="md" />
@@ -275,7 +277,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       </div>
 
       {/* Bottom Navigation */}
-      <div className="h-14 border-t border-gray-200 dark:border-gray-700 flex items-center justify-around">
+      <div className="h-14 border-t border-gray-200 dark:border-gray-700 flex items-center justify-around bg-white/90 dark:bg-black/90">
         <button
           onClick={onShowFriends}
           className="flex-1 h-full flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"

@@ -412,7 +412,7 @@ export const FriendsPanel: React.FC<FriendsPanelProps> = ({
   const sentRequests = friendRequests.filter(r => r.sender_id === user?.id);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full w-full bg-white dark:bg-gray-800 p-2 sm:p-4 overflow-y-auto">
       <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Friends

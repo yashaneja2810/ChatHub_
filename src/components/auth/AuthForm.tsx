@@ -43,13 +43,13 @@ export const AuthForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-black px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-black px-2 sm:px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full space-y-8"
+        className="w-full max-w-xs sm:max-w-md space-y-8"
       >
-        <div className="bg-white dark:bg-black rounded-2xl shadow-xl p-8">
+        <div className="bg-white dark:bg-black rounded-2xl shadow-xl p-4 sm:p-8">
           <div className="text-center">
             <motion.div
               initial={{ scale: 0 }}
