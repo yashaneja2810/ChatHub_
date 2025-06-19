@@ -951,7 +951,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, type: 'spring' }}
-        className="h-14 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-purple-900 dark:via-blue-900 dark:to-black flex items-center px-2 sm:px-4 rounded-t-none sm:rounded-t-2xl shadow-none sm:shadow-xl relative z-10"
+        className="h-14 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-purple-900 dark:via-blue-900 dark:to-black flex items-center px-2 sm:px-4 rounded-t-none sm:rounded-t-2xl shadow-none sm:shadow-xl sticky top-0 z-30"
         style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
       >
         <button
@@ -1022,7 +1022,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         )}
       </motion.div>
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-1 sm:p-2 space-y-2">
+      <div className="flex-1 overflow-y-auto p-1 sm:p-2 space-y-2" style={{ paddingTop: '3.5rem' }}>
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
