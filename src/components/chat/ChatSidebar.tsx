@@ -266,9 +266,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate text-base">{chat.name || chat.other_user?.full_name}</div>
-                  {chat.last_message && (
-                    <div className="text-xs truncate opacity-70 mt-1">{chat.last_message.content}</div>
-                  )}
                 </div>
               </motion.div>
             ))}

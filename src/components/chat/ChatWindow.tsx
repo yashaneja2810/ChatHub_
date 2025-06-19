@@ -79,9 +79,118 @@ interface ChatWindowProps {
   chatId: string;
   onBack: () => void;
   onShowFriends: () => void;
+  onSelectChat?: (chatId: string) => void;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFriends }) => {
+// --- URL detection utility ---
+const urlRegex = /((https?:\/\/|www\.)[\w-]+(\.[\w-]+)+(\/[\w-./?%&=]*)?)/gi;
+
+function extractUrls(text: string): string[] {
+  return (text.match(urlRegex) || []).map(url => {
+    if (!/^https?:\/\//i.test(url)) return 'https://' + url;
+    return url;
+  });
+}
+
+function linkify(text: string) {
+  let i = 0;
+  return text.replace(urlRegex, (url) => {
+    let href = url;
+    if (!/^https?:\/\//i.test(url)) href = 'https://' + url;
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline break-all">${url}</a>`;
+  });
+}
+
+// --- LinkPreview component ---
+const LinkPreview: React.FC<{ url: string }> = ({ url }) => {
+  const [meta, setMeta] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchMeta() {
+      setLoading(true);
+      setError(null);
+      try {
+        // Use a public Open Graph API proxy (for demo; in production, use your own serverless function)
+        const res = await fetch(`https://jsonlink.io/api/extract?url=${encodeURIComponent(url)}`);
+        if (!res.ok) throw new Error('Failed to fetch preview');
+        const data = await res.json();
+        if (!cancelled) setMeta(data);
+      } catch (e: any) {
+        if (!cancelled) setError('No preview available');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchMeta();
+    return () => { cancelled = true; };
+  }, [url]);
+
+  if (loading) return <div className="mt-2 text-xs text-gray-400">Loading preview...</div>;
+  if (error || !meta) return null;
+
+  return (
+    <a href={meta.url || url} target="_blank" rel="noopener noreferrer" className="block mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-black/80 shadow hover:shadow-lg transition overflow-hidden">
+      {meta.images && meta.images[0] && (
+        <img src={meta.images[0]} alt={meta.title || meta.url} className="w-full h-32 object-cover" />
+      )}
+      <div className="p-3">
+        <div className="font-semibold text-gray-900 dark:text-white text-sm truncate">{meta.title || meta.url}</div>
+        {meta.description && <div className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{meta.description}</div>}
+        <div className="text-xs text-blue-500 mt-1">{meta.domain || (meta.url || url).replace(/^https?:\/\//, '').split('/')[0]}</div>
+      </div>
+    </a>
+  );
+};
+
+// Friend type for forward modal
+interface FriendForForward {
+  id: string;
+  full_name: string;
+  username: string;
+  avatar_url: string | null;
+}
+
+// --- Forward Modal ---
+const ForwardModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  messages: Message[];
+  friends: FriendForForward[];
+  onForward: (friend: FriendForForward) => void;
+}> = ({ isOpen, onClose, messages, friends, onForward }) => {
+  if (!isOpen || !messages || messages.length === 0) return null;
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Forward Messages">
+      <div className="mb-4 text-gray-700 dark:text-gray-200">Select a friend to forward {messages.length > 1 ? `${messages.length} messages` : 'this message'}:</div>
+      <div className="max-h-64 overflow-y-auto space-y-2">
+        {friends.map(friend => (
+          <button
+            key={friend.id}
+            onClick={() => onForward(friend)}
+            className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 transition"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 dark:from-purple-900 dark:via-blue-900 dark:to-black flex items-center justify-center">
+              {friend.avatar_url ? (
+                <img src={friend.avatar_url} alt={friend.full_name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <Users className="h-6 w-6 text-white" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="font-medium text-gray-900 dark:text-white truncate">{friend.full_name}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">@{friend.username}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+};
+
+export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFriends, onSelectChat }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatInfo, setChatInfo] = useState<ChatInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,6 +210,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [mediaModal, setMediaModal] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [forwardModalOpen, setForwardModalOpen] = useState(false);
+  const [forwardMessages, setForwardMessages] = useState<Message[]>([]);
+  const [friendsForForward, setFriendsForForward] = useState<FriendForForward[]>([]);
+  const [selectedForForward, setSelectedForForward] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -628,11 +741,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
 
   // Helper: handle long press or right click
   const handleMessageMouseDown = (messageId: string, isOwn: boolean) => {
-    if (!isOwn) return;
     longPressTimeout.current = setTimeout(() => {
       setSelectionMode(true);
       setSelectedMessages([messageId]);
-    }, 500); // 500ms for long press
+      setSelectedForForward(messageId);
+    }, 500);
   };
   const handleMessageMouseUp = () => {
     if (longPressTimeout.current) {
@@ -659,10 +772,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     }
     setSelectedMessages([]);
     setSelectionMode(false);
+    setSelectedForForward(null);
   };
   const handleCancelSelection = () => {
     setSelectionMode(false);
     setSelectedMessages([]);
+    setSelectedForForward(null);
   };
 
   const handleHeaderMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -716,6 +831,94 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     link.click();
     document.body.removeChild(link);
   };
+
+  // Fetch friends for forwarding
+  useEffect(() => {
+    if (!user) return;
+    async function fetchFriends() {
+      const { data, error } = await supabase
+        .from('friendships')
+        .select(`
+          user1_id,
+          user2_id,
+          user1:profiles!friendships_user1_id_fkey (id, full_name, username, avatar_url),
+          user2:profiles!friendships_user2_id_fkey (id, full_name, username, avatar_url)
+        `)
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      if (!error && data) {
+        const friendsList: FriendForForward[] = data.map((friendship: any) => {
+          const friend = friendship.user1_id === user.id ? friendship.user2 : friendship.user1;
+          return {
+            id: friend.id,
+            full_name: friend.full_name,
+            username: friend.username,
+            avatar_url: friend.avatar_url,
+          };
+        });
+        setFriendsForForward(friendsList);
+      }
+    }
+    fetchFriends();
+  }, [user]);
+
+  // Forward handler: create/find direct chat, then send message
+  const handleForwardToFriend = async (friend: FriendForForward) => {
+    if (!forwardMessages || forwardMessages.length === 0 || !user) return;
+    let chatId: string | null = null;
+    const { data: chats, error: chatError } = await supabase
+      .from('chats')
+      .select('id, type, chat_members!inner(user_id)')
+      .eq('type', 'direct');
+    if (!chatError && chats) {
+      for (const chat of chats) {
+        const memberIds = chat.chat_members.map((m: any) => m.user_id);
+        if (memberIds.includes(user.id) && memberIds.includes(friend.id) && memberIds.length === 2) {
+          chatId = chat.id;
+          break;
+        }
+      }
+    }
+    if (!chatId) {
+      const { data: newChat, error: createError } = await supabase.rpc('create_direct_chat', {
+        p_user1_id: user.id,
+        p_user2_id: friend.id
+      });
+      if (createError) {
+        toast.error('Failed to create chat');
+        return;
+      }
+      chatId = newChat;
+    }
+    // Forward all selected messages in order
+    await Promise.all(forwardMessages.map(msg =>
+      supabase.from('messages').insert([
+        {
+          chat_id: chatId,
+          sender_id: user.id,
+          content: msg.content,
+          type: msg.type || 'text',
+        },
+      ])
+    ));
+    setForwardModalOpen(false);
+    setForwardMessages([]);
+    setSelectionMode(false);
+    setSelectedMessages([]);
+    setSelectedForForward(null);
+    toast.success('Messages forwarded!');
+    // Open the chat programmatically if handler is available
+    if (typeof onSelectChat === 'function' && chatId) {
+      onSelectChat(chatId);
+    } else if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        window.location.hash = `#chat-${chatId}`;
+        window.location.reload();
+      }, 300);
+    }
+  };
+
+  // Allow forwarding for both sent and received messages
+  const canForward = true;
 
   if (loading) {
     return (
@@ -774,17 +977,44 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             </h2>
           </div>
         </div>
+        {/* Forward button in header when one or more messages are selected */}
+        {selectionMode && selectedMessages.length > 0 && (
+          <div className="flex items-center ml-4 space-x-2">
+          <button
+              className="p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 shadow transition-all duration-200 z-10"
+              onClick={() => {
+                const msgs = messages.filter(m => selectedMessages.includes(m.id));
+                if (msgs.length > 0) {
+                  setForwardMessages(msgs);
+                  setForwardModalOpen(true);
+                }
+              }}
+              title="Forward selected messages"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
+            </svg>
+          </button>
+          <button
+              className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 shadow transition-all duration-200 z-10"
+              onClick={handleCancelSelection}
+              title="Cancel selection"
+          >
+              <svg width="18" height="18" viewBox="0 0 20 20"><line x1="5" y1="5" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/><line x1="15" y1="5" x2="5" y2="15" stroke="currentColor" strokeWidth="2"/></svg>
+          </button>
+        </div>
+        )}
       </motion.div>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4">
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
-          </div>
+      </div>
         ) : error ? (
           <div className="flex justify-center items-center h-full">
             <p className="text-red-500">{error}</p>
-          </div>
+      </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
             <MessageCircle className="w-12 h-12 mb-4 opacity-50" />
@@ -825,6 +1055,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                     }`}
                     style={{ boxShadow: isSelected ? '0 0 0 2px #ef4444' : undefined }}
                   >
+                    {/* Forward button (visible for all messages, not just own) */}
+                    {((selectionMode && isSelected) || !selectionMode) && (
+                      <button
+                        className="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-black/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-500 dark:text-purple-400 shadow transition-all duration-200 z-10"
+                        style={{ display: selectionMode ? (isSelected ? 'block' : 'none') : 'none' }}
+                        title="Forward message"
+                        onClick={(e) => { e.stopPropagation(); setForwardMessages([message]); setForwardModalOpen(true); }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
+                        </svg>
+                      </button>
+                    )}
+                    {/* Forward button on hover (desktop) */}
+                    {!selectionMode && (
+                      <button
+                        className="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-black/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-500 dark:text-purple-400 shadow transition-all duration-200 z-10 hidden group-hover:block"
+                        title="Forward message"
+                        onClick={(e) => { e.stopPropagation(); setForwardMessages([message]); setForwardModalOpen(true); }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
+                        </svg>
+                      </button>
+                    )}
                     {selectionMode && isOwn && (
                       <button
                         className={`absolute -left-7 top-1 w-5 h-5 rounded-full border-2 border-red-500 flex items-center justify-center ${isSelected ? 'bg-red-500' : 'bg-white'}`}
@@ -857,7 +1112,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                         onClick={() => handleOpenMedia(message.content, 'video')}
                       />
                     ) : (
-                      <p className="text-sm leading-snug animate-fade-in break-words">{message.content}</p>
+                      (() => {
+                        const urls = extractUrls(message.content);
+                        if (urls.length > 0) {
+                          return (
+                            <>
+                              <div className="text-sm leading-snug animate-fade-in break-words" dangerouslySetInnerHTML={{ __html: linkify(message.content) }} />
+                              <LinkPreview url={urls[0]} />
+                            </>
+                          );
+                        } else {
+                          return (
+                            <p className="text-sm leading-snug animate-fade-in break-words">{message.content}</p>
+                          );
+                        }
+                      })()
                     )}
                     <p className="text-xs mt-1 opacity-70 text-right">
                 {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -878,28 +1147,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
           </div>
         )}
       </div>
-
-      {/* Floating delete/cancel bar for selection mode */}
-      {selectionMode && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 flex items-center space-x-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-full px-4 py-2 shadow-lg">
-          <span className="text-sm text-gray-700 dark:text-gray-200">{selectedMessages.length} selected</span>
-          <button
-            className="ml-2 p-2 rounded-full bg-red-500 text-white hover:bg-red-600 focus:outline-none"
-            onClick={handleDeleteSelected}
-            disabled={selectedMessages.length === 0}
-            title="Delete selected messages"
-          >
-            <Trash2 size={18} />
-          </button>
-          <button
-            className="ml-2 p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none"
-            onClick={handleCancelSelection}
-            title="Cancel selection"
-          >
-            <svg width="18" height="18" viewBox="0 0 20 20"><line x1="5" y1="5" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/><line x1="15" y1="5" x2="5" y2="15" stroke="currentColor" strokeWidth="2"/></svg>
-          </button>
-        </div>
-      )}
 
       {/* Input */}
       <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 z-20">
@@ -942,7 +1189,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             </svg>
           </button>
         </div>
-      </div>
+          </div>
 
       {/* Media Modal */}
       {mediaModal && (
@@ -960,9 +1207,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             >
               Download
             </a>
-          </div>
+      </div>
         </Modal>
         )}
+
+      {/* Forward Modal */}
+      <ForwardModal
+        isOpen={forwardModalOpen}
+        onClose={() => setForwardModalOpen(false)}
+        messages={forwardMessages}
+        friends={friendsForForward}
+        onForward={handleForwardToFriend}
+      />
     </div>
   );
 };

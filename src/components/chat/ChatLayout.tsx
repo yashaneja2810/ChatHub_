@@ -80,6 +80,7 @@ export const ChatLayout: React.FC = () => {
                 chatId={selectedChat}
                 onBack={() => setSelectedChat(null)}
                 onShowFriends={() => setShowFriendsPanel(true)}
+                onSelectChat={setSelectedChat}
               />
             </motion.div>
           )}
