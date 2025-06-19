@@ -24,15 +24,15 @@ export const ChatLayout: React.FC = () => {
   };
 
   return (
-    <div className="h-screen min-h-0 min-w-0 flex flex-col bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black">
+    <div className="h-screen min-h-0 min-w-0 flex flex-col bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-black dark:via-gray-900 dark:to-black text-sm">
       {/* Header removed */}
       {/* Main Content */}
       <div
         className="flex-1 min-h-0 min-w-0 flex overflow-hidden
           m-0 rounded-none shadow-none
-          sm:m-2 sm:rounded-xl sm:shadow-xl
-          md:m-4 md:rounded-2xl md:shadow-2xl
-          lg:m-6 lg:rounded-3xl lg:shadow-2xl
+          sm:m-1 sm:rounded-lg sm:shadow-lg
+          md:m-2 md:rounded-xl md:shadow-xl
+          lg:m-4 lg:rounded-2xl lg:shadow-2xl
           bg-white/70 dark:bg-black/80 backdrop-blur-2xl mt-0"
       >
         {/* Chats Panel */}

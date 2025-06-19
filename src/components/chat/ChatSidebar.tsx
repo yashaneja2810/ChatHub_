@@ -191,19 +191,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   return (
     <div className="flex flex-col min-w-0 min-h-0 h-full bg-white/60 dark:bg-black/80 backdrop-blur-2xl
       w-full rounded-none shadow-none p-0
-      lg:w-80 lg:rounded-l-2xl lg:shadow-2xl lg:p-0 overflow-hidden">
+      lg:w-72 lg:rounded-l-2xl lg:shadow-2xl lg:p-0 overflow-hidden">
       {/* Search Bar */}
-      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-black/70 rounded-tl-none lg:rounded-tl-2xl">
+      <div className="p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-black/70 rounded-tl-none lg:rounded-tl-2xl">
         <div className="relative">
           <input
             type="text"
             placeholder="Search chats..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white/80 dark:bg-black/80 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 focus:border-transparent shadow-md transition-all duration-300"
+            className="w-full pl-8 pr-2 py-1 rounded-full border border-gray-300 dark:border-gray-700 bg-white/80 dark:bg-black/80 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 focus:border-transparent shadow-md transition-all duration-300"
           />
           <svg
-            className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
+            className="absolute left-2 top-1.5 w-4 h-4 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -256,16 +256,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04, type: 'spring', stiffness: 120 }}
-                className={`cursor-pointer rounded-2xl px-4 py-3 flex items-center space-x-3 transition-all duration-200 shadow-md bg-white/80 dark:bg-black/80 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 dark:hover:from-purple-900 dark:hover:to-black hover:text-white ${selectedChatId === chat.id ? 'ring-2 ring-blue-400 dark:ring-purple-500' : ''}`}
+                className={`cursor-pointer rounded-xl px-2 py-2 flex items-center space-x-2 transition-all duration-200 shadow-md bg-white/80 dark:bg-black/80 hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 dark:hover:from-purple-900 dark:hover:to-black hover:text-white dark:hover:text-gray-100 text-sm ${selectedChatId === chat.id ? 'ring-2 ring-blue-400 dark:ring-purple-500' : ''}`}
                 onClick={() => onSelectChat(chat.id)}
               >
                 <Avatar
                   src={chat.other_user?.avatar_url}
                   name={chat.other_user?.full_name || chat.name || 'User'}
-                  size="md"
+                  size="sm"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate text-base">{chat.name || chat.other_user?.full_name}</div>
+                  <div className="font-semibold truncate text-xs text-gray-900 dark:text-gray-100">{chat.name || chat.other_user?.full_name}</div>
+                  {chat.last_message && (
+                    <div className="text-xs truncate opacity-80 mt-0.5 text-gray-500 dark:text-gray-400">{chat.last_message.content}</div>
+                  )}
                 </div>
               </motion.div>
             ))}

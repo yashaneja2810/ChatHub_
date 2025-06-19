@@ -27,6 +27,7 @@ import { Input } from '../ui/Input';
 import { EmojiPicker } from '../ui/EmojiPicker';
 import { Avatar } from '../ui/Avatar';
 import { Modal } from '../ui/Modal';
+import './MessageBubble.css';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Message = Database['public']['Tables']['messages']['Row'] & {
@@ -950,37 +951,38 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, type: 'spring' }}
-        className="h-20 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-purple-900 dark:via-blue-900 dark:to-black flex items-center px-4 sm:px-8 rounded-t-none sm:rounded-t-2xl shadow-none sm:shadow-xl relative z-10"
+        className="h-14 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 dark:from-purple-900 dark:via-blue-900 dark:to-black flex items-center px-2 sm:px-4 rounded-t-none sm:rounded-t-2xl shadow-none sm:shadow-xl relative z-10"
         style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
       >
         <button
           onClick={onBack}
-          className="lg:hidden p-2 -ml-2 mr-4 text-white hover:text-gray-200 bg-white/10 rounded-full backdrop-blur"
+          className="lg:hidden p-1 -ml-1 mr-2 text-white hover:text-gray-200 bg-white/10 rounded-full backdrop-blur"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="flex items-center flex-1 min-w-0">
-          <div className="flex-shrink-0 mr-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 dark:from-purple-900 dark:via-blue-900 dark:to-black p-1 animate-pulse">
-            <Avatar
-              src={chatInfo?.other_user?.avatar_url}
-              name={chatInfo?.other_user?.full_name || 'User'}
-              size="md"
-            />
+          <div className="flex-shrink-0 mr-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 dark:from-purple-900 dark:via-blue-900 dark:to-black p-0.5 animate-pulse">
+              <Avatar
+                src={chatInfo?.other_user?.avatar_url}
+                name={chatInfo?.other_user?.full_name || 'User'}
+                size="sm"
+              />
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-white truncate drop-shadow-lg">
+            <h2 className="text-base font-bold text-white truncate drop-shadow-lg">
               {chatInfo?.other_user?.full_name || 'Loading...'}
             </h2>
           </div>
         </div>
-        {/* Forward button in header when one or more messages are selected */}
+        {/* Forward and Delete buttons in header when messages are selected */}
         {selectionMode && selectedMessages.length > 0 && (
-          <div className="flex items-center ml-4 space-x-2">
-          <button
+          <div className="flex items-center ml-4 space-x-4">
+            {/* Forward button */}
+            <button
               className="p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 shadow transition-all duration-200 z-10"
               onClick={() => {
                 const msgs = messages.filter(m => selectedMessages.includes(m.id));
@@ -993,20 +995,34 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
-            </svg>
-          </button>
-          <button
+              </svg>
+            </button>
+            {/* Delete button (only if all selected messages are sent by the current user) */}
+            {selectedMessages.every(id => messages.find(m => m.id === id)?.sender_id === user?.id) && (
+              <button
+                className="p-2 rounded-md bg-red-500 text-white hover:bg-red-600 shadow transition-all duration-200 z-10"
+                onClick={handleDeleteSelected}
+                title="Delete selected messages"
+              >
+                {/* Trash bin icon */}
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </button>
+            )}
+            {/* Cancel button */}
+            <button
               className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 shadow transition-all duration-200 z-10"
               onClick={handleCancelSelection}
               title="Cancel selection"
-          >
+            >
               <svg width="18" height="18" viewBox="0 0 20 20"><line x1="5" y1="5" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/><line x1="15" y1="5" x2="5" y2="15" stroke="currentColor" strokeWidth="2"/></svg>
-          </button>
-        </div>
+            </button>
+          </div>
         )}
       </motion.div>
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-1 sm:p-2 space-y-2">
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
@@ -1046,14 +1062,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                   onContextMenu={(e) => handleMessageContextMenu(e, message.id, isOwn)}
           >
             <div
-                    className={`max-w-[85vw] sm:max-w-[60%] rounded-xl sm:rounded-2xl px-2 sm:px-3 py-2 relative transition-shadow duration-150 shadow-md backdrop-blur-lg ${
-                      isOwn
+                    className={`max-w-[95vw] sm:max-w-[80vw] rounded-2xl sm:rounded-3xl px-2 sm:px-4 py-2 relative shadow-xl transition-all duration-200 group
+                      ${isOwn
                         ? isSelected
-                          ? 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white ring-2 ring-pink-400'
-                          : 'bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 text-white'
-                        : 'bg-white/80 dark:bg-black/80 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800'
-                    }`}
-                    style={{ boxShadow: isSelected ? '0 0 0 2px #ef4444' : undefined }}
+                          ? 'bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white ring-2 ring-pink-400 animate-glow'
+                          : 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white dark:text-white/90 backdrop-blur-2xl border border-blue-200/30 dark:border-blue-900/30'
+                        : isSelected
+                          ? 'bg-white/80 dark:bg-gray-900/80 text-gray-900 dark:text-white border-2 border-pink-400 animate-glow'
+                          : 'bg-white/70 dark:bg-black/70 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800 backdrop-blur-2xl'
+                      } hover:scale-[1.03] hover:shadow-2xl`}
+                    style={{ boxShadow: isSelected ? '0 0 8px 2px #f472b6, 0 4px 32px 0 rgba(31,38,135,0.18)' : '0 2px 16px 0 rgba(31,38,135,0.10)' }}
                   >
                     {/* Forward button (visible for all messages, not just own) */}
                     {((selectionMode && isSelected) || !selectionMode) && (
@@ -1099,7 +1117,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                       <img
                         src={message.content}
                         alt="sent media"
-                        className="max-w-[70vw] sm:max-w-[180px] max-h-40 rounded-lg object-cover mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                        className="max-w-[60vw] sm:max-w-[120px] max-h-24 rounded-md object-cover mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
                         style={{ display: 'block' }}
                         onClick={() => handleOpenMedia(message.content, 'image')}
                       />
@@ -1107,7 +1125,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
                       <video
                         src={message.content}
                         controls
-                        className="max-w-[70vw] sm:max-w-[180px] max-h-40 rounded-lg mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                        className="max-w-[60vw] sm:max-w-[120px] max-h-24 rounded-md mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
                         style={{ display: 'block' }}
                         onClick={() => handleOpenMedia(message.content, 'video')}
                       />
@@ -1150,15 +1168,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
 
       {/* Input */}
       <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 z-20">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           <button
             type="button"
             onClick={() => imageInputRef.current?.click()}
-            className="p-2 bg-white/70 dark:bg-black/70 rounded-full text-blue-500 dark:text-purple-400 hover:bg-blue-100 dark:hover:bg-purple-900 shadow transition-all duration-200"
+            className="p-1 bg-white/70 dark:bg-black/70 rounded-full text-blue-500 dark:text-purple-400 hover:bg-blue-100 dark:hover:bg-purple-900 shadow transition-all duration-200"
             disabled={uploadingImage}
             title="Send image or video"
           >
-            <ImageIcon className="h-5 w-5" />
+            <ImageIcon className="h-4 w-4" />
           </button>
           <input
             type="file"
@@ -1173,7 +1191,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             onChange={handleTyping}
             onKeyDown={handleKeyPress}
             placeholder="Type a message..."
-            className="flex-1 p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 p-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={handleSendMessage}
