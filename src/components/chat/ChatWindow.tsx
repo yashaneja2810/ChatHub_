@@ -28,6 +28,7 @@ import { EmojiPicker } from '../ui/EmojiPicker';
 import { Avatar } from '../ui/Avatar';
 import { Modal } from '../ui/Modal';
 import './MessageBubble.css';
+import { Message } from '../../types/chat';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Message = Database['public']['Tables']['messages']['Row'] & {
@@ -199,6 +200,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
@@ -423,10 +425,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     };
   }, [chatId, user]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // Real-time message updates
   useRealtime(
     'messages',
@@ -593,8 +591,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (smooth = true) => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -921,22 +923,28 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   // Allow forwarding for both sent and received messages
   const canForward = true;
 
-  // Add this useEffect to always scroll to the latest message when messages change or input is focused
+  // Only scroll to bottom if user is near the bottom or if the last message is from the current user
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!messageListRef.current) return;
+    const el = messageListRef.current;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    const lastMsg = messages[messages.length - 1];
+    if (isNearBottom || (lastMsg && user && lastMsg.sender_id === user.id)) {
+      scrollToBottom();
+    }
+  }, [messages, user]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const input = document.querySelector('input[type="text"]');
     if (!input) return;
-    const handler = () => setTimeout(scrollToBottom, 100);
+    const handler = () => setTimeout(() => scrollToBottom(false), 100);
     input.addEventListener('focus', handler);
     return () => input.removeEventListener('focus', handler);
   }, []);
 
   // Helper to group messages by day
-  function groupMessagesByDay(messages) {
-    return messages.reduce((groups, message) => {
+  function groupMessagesByDay(messages: Message[]): Record<string, Message[]> {
+    return messages.reduce((groups: Record<string, Message[]>, message: Message) => {
       const date = new Date(message.created_at);
       const dayKey = date.toISOString().split('T')[0];
       if (!groups[dayKey]) groups[dayKey] = [];
@@ -1046,7 +1054,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         )}
       </motion.div>
       {/* Messages */}
-      <div className="flex-1 h-0 overflow-y-auto p-1 sm:p-2 flex flex-col-reverse space-y-2 space-y-reverse" style={{ paddingBottom: '4.5rem' }}>
+      <div ref={messageListRef} className="flex-1 h-0 overflow-y-auto p-1 sm:p-2 flex flex-col-reverse space-y-2 space-y-reverse" style={{ paddingBottom: '4.5rem' }}>
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
@@ -1063,7 +1071,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         ) : (
           Object.entries(groupMessagesByDay([...messages].reverse())).map(([day, dayMessages]) => (
             <React.Fragment key={day}>
-              {dayMessages.map((message) => {
+              {dayMessages.map((message: Message) => {
                 const isOwn = message.sender_id === user?.id;
                 const isSelected = selectedMessages.includes(message.id);
                 return (
