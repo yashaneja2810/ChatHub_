@@ -921,6 +921,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
   // Allow forwarding for both sent and received messages
   const canForward = true;
 
+  // Add this useEffect to always scroll to the latest message when messages change or input is focused
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    const input = document.querySelector('input[type="text"]');
+    if (!input) return;
+    const handler = () => setTimeout(scrollToBottom, 100);
+    input.addEventListener('focus', handler);
+    return () => input.removeEventListener('focus', handler);
+  }, []);
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -1022,7 +1035,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         )}
       </motion.div>
       {/* Messages */}
-      <div className="flex-1 h-0 overflow-y-auto p-1 sm:p-2 space-y-2">
+      <div className="flex-1 h-0 overflow-y-auto p-1 sm:p-2 space-y-2" style={{ paddingBottom: '4.5rem' }}>
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
@@ -1167,7 +1180,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
       </div>
 
       {/* Input */}
-      <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 z-20">
+      <div className="p-2 sm:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 fixed bottom-0 left-0 w-full z-40" style={{ maxWidth: 'inherit' }}>
         <div className="flex items-center space-x-1">
           <button
             type="button"
