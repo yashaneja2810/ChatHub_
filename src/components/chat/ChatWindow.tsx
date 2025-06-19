@@ -934,6 +934,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
     return () => input.removeEventListener('focus', handler);
   }, []);
 
+  // Helper to group messages by day
+  function groupMessagesByDay(messages) {
+    return messages.reduce((groups, message) => {
+      const date = new Date(message.created_at);
+      const dayKey = date.toISOString().split('T')[0];
+      if (!groups[dayKey]) groups[dayKey] = [];
+      groups[dayKey].push(message);
+      return groups;
+    }, {});
+  }
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -978,11 +989,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         <div className="flex items-center flex-1 min-w-0">
           <div className="flex-shrink-0 mr-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 dark:from-purple-900 dark:via-blue-900 dark:to-black p-0.5 animate-pulse">
-              <Avatar
-                src={chatInfo?.other_user?.avatar_url}
-                name={chatInfo?.other_user?.full_name || 'User'}
+            <Avatar
+              src={chatInfo?.other_user?.avatar_url}
+              name={chatInfo?.other_user?.full_name || 'User'}
                 size="sm"
-              />
+            />
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -995,7 +1006,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
         {selectionMode && selectedMessages.length > 0 && (
           <div className="flex items-center ml-4 space-x-4">
             {/* Forward button */}
-            <button
+          <button
               className="p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 shadow transition-all duration-200 z-10"
               onClick={() => {
                 const msgs = messages.filter(m => selectedMessages.includes(m.id));
@@ -1008,19 +1019,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
-              </svg>
-            </button>
+            </svg>
+          </button>
             {/* Delete button (only if all selected messages are sent by the current user) */}
             {selectedMessages.every(id => messages.find(m => m.id === id)?.sender_id === user?.id) && (
-              <button
+          <button
                 className="p-2 rounded-md bg-red-500 text-white hover:bg-red-600 shadow transition-all duration-200 z-10"
                 onClick={handleDeleteSelected}
                 title="Delete selected messages"
-              >
+          >
                 {/* Trash bin icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
-                </svg>
+            </svg>
               </button>
             )}
             {/* Cancel button */}
@@ -1030,12 +1041,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
               title="Cancel selection"
             >
               <svg width="18" height="18" viewBox="0 0 20 20"><line x1="5" y1="5" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/><line x1="15" y1="5" x2="5" y2="15" stroke="currentColor" strokeWidth="2"/></svg>
-            </button>
-          </div>
+          </button>
+        </div>
         )}
       </motion.div>
       {/* Messages */}
-      <div className="flex-1 h-0 overflow-y-auto p-1 sm:p-2 space-y-2" style={{ paddingBottom: '4.5rem' }}>
+      <div className="flex-1 h-0 overflow-y-auto p-1 sm:p-2 flex flex-col-reverse space-y-2 space-y-reverse" style={{ paddingBottom: '4.5rem' }}>
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <LoadingSpinner size="lg" />
@@ -1050,123 +1061,122 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack, onShowFr
             <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          messages.map((message, index) => {
-            const isOwn = message.sender_id === user?.id;
-            const isSelected = selectedMessages.includes(message.id);
-            const showDate = index === 0 || !isSameDay(new Date(message.created_at), new Date(messages[index - 1].created_at));
-            
-            return (
-              <React.Fragment key={message.id}>
-                {showDate && (
-                  <div className="flex justify-center my-4">
-                    <div className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300">
-                      {format(new Date(message.created_at), 'MMMM d, yyyy')}
-                    </div>
-                  </div>
-                )}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                  onMouseDown={() => handleMessageMouseDown(message.id, isOwn)}
-                  onMouseUp={handleMessageMouseUp}
-                  onMouseLeave={handleMessageMouseUp}
-                  onContextMenu={(e) => handleMessageContextMenu(e, message.id, isOwn)}
-          >
-            <div
-                    className={`max-w-[95vw] sm:max-w-[80vw] rounded-2xl sm:rounded-3xl px-2 sm:px-4 py-2 relative shadow-xl transition-all duration-200 group
-                      ${isOwn
-                        ? isSelected
-                          ? 'bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white ring-2 ring-pink-400 animate-glow'
-                          : 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white dark:text-white/90 backdrop-blur-2xl border border-blue-200/30 dark:border-blue-900/30'
-                        : isSelected
-                          ? 'bg-white/80 dark:bg-gray-900/80 text-gray-900 dark:text-white border-2 border-pink-400 animate-glow'
-                          : 'bg-white/70 dark:bg-black/70 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800 backdrop-blur-2xl'
-                      } hover:scale-[1.03] hover:shadow-2xl`}
-                    style={{ boxShadow: isSelected ? '0 0 8px 2px #f472b6, 0 4px 32px 0 rgba(31,38,135,0.18)' : '0 2px 16px 0 rgba(31,38,135,0.10)' }}
+          Object.entries(groupMessagesByDay([...messages].reverse())).map(([day, dayMessages]) => (
+            <React.Fragment key={day}>
+              {dayMessages.map((message) => {
+                const isOwn = message.sender_id === user?.id;
+                const isSelected = selectedMessages.includes(message.id);
+                return (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                    onMouseDown={() => handleMessageMouseDown(message.id, isOwn)}
+                    onMouseUp={handleMessageMouseUp}
+                    onMouseLeave={handleMessageMouseUp}
+                    onContextMenu={(e) => handleMessageContextMenu(e, message.id, isOwn)}
                   >
-                    {/* Forward button (visible for all messages, not just own) */}
-                    {((selectionMode && isSelected) || !selectionMode) && (
-                      <button
-                        className="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-black/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-500 dark:text-purple-400 shadow transition-all duration-200 z-10"
-                        style={{ display: selectionMode ? (isSelected ? 'block' : 'none') : 'none' }}
-                        title="Forward message"
-                        onClick={(e) => { e.stopPropagation(); setForwardMessages([message]); setForwardModalOpen(true); }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
-                        </svg>
-                      </button>
-                    )}
-                    {/* Forward button on hover (desktop) */}
-                    {!selectionMode && (
-                      <button
-                        className="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-black/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-500 dark:text-purple-400 shadow transition-all duration-200 z-10 hidden group-hover:block"
-                        title="Forward message"
-                        onClick={(e) => { e.stopPropagation(); setForwardMessages([message]); setForwardModalOpen(true); }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
-                        </svg>
-                      </button>
-                    )}
-                    {selectionMode && isOwn && (
-                      <button
-                        className={`absolute -left-7 top-1 w-5 h-5 rounded-full border-2 border-red-500 flex items-center justify-center ${isSelected ? 'bg-red-500' : 'bg-white'}`}
-                        onClick={(e) => { e.stopPropagation(); handleSelectMessage(message.id); }}
-                        tabIndex={0}
-                        aria-label={isSelected ? 'Deselect message' : 'Select message'}
-                      >
-                        {isSelected ? (
-                          <svg width="14" height="14" viewBox="0 0 20 20">
-                            <polyline points="4 11 8 15 16 6" fill="none" stroke="white" strokeWidth="2"/>
+                    <div
+                      className={`max-w-[95vw] sm:max-w-[80vw] rounded-2xl sm:rounded-3xl px-2 sm:px-4 py-2 relative shadow-xl transition-all duration-200 group
+                        ${isOwn
+                          ? isSelected
+                            ? 'bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white ring-2 ring-pink-400 animate-glow'
+                            : 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white dark:text-white/90 backdrop-blur-2xl border border-blue-200/30 dark:border-blue-900/30'
+                          : isSelected
+                            ? 'bg-white/80 dark:bg-gray-900/80 text-gray-900 dark:text-white border-2 border-pink-400 animate-glow'
+                            : 'bg-white/70 dark:bg-black/70 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800 backdrop-blur-2xl'
+                        } hover:scale-[1.03] hover:shadow-2xl`}
+                      style={{ boxShadow: isSelected ? '0 0 8px 2px #f472b6, 0 4px 32px 0 rgba(31,38,135,0.18)' : '0 2px 16px 0 rgba(31,38,135,0.10)' }}
+                    >
+                      {/* Forward button (visible for all messages, not just own) */}
+                      {((selectionMode && isSelected) || !selectionMode) && (
+                        <button
+                          className="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-black/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-500 dark:text-purple-400 shadow transition-all duration-200 z-10"
+                          style={{ display: selectionMode ? (isSelected ? 'block' : 'none') : 'none' }}
+                          title="Forward message"
+                          onClick={(e) => { e.stopPropagation(); setForwardMessages([message]); setForwardModalOpen(true); }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
                           </svg>
-                        ) : null}
-                      </button>
-                    )}
-                    {/* Message content rendering */}
-                    {message.type === 'image' ? (
-                      <img
-                        src={message.content}
-                        alt="sent media"
-                        className="max-w-[60vw] sm:max-w-[120px] max-h-24 rounded-md object-cover mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
-                        style={{ display: 'block' }}
-                        onClick={() => handleOpenMedia(message.content, 'image')}
-                      />
-                    ) : message.type === 'video' ? (
-                      <video
-                        src={message.content}
-                        controls
-                        className="max-w-[60vw] sm:max-w-[120px] max-h-24 rounded-md mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
-                        style={{ display: 'block' }}
-                        onClick={() => handleOpenMedia(message.content, 'video')}
-                      />
-                    ) : (
-                      (() => {
-                        const urls = extractUrls(message.content);
-                        if (urls.length > 0) {
-                          return (
-                            <>
-                              <div className="text-sm leading-snug animate-fade-in break-words" dangerouslySetInnerHTML={{ __html: linkify(message.content) }} />
-                              <LinkPreview url={urls[0]} />
-                            </>
-                          );
-                        } else {
-                          return (
-                            <p className="text-sm leading-snug animate-fade-in break-words">{message.content}</p>
-                          );
-                        }
-                      })()
-                    )}
-                    <p className="text-xs mt-1 opacity-70 text-right">
+                        </button>
+                      )}
+                      {/* Forward button on hover (desktop) */}
+                      {!selectionMode && (
+                        <button
+                          className="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-black/80 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-500 dark:text-purple-400 shadow transition-all duration-200 z-10 hidden group-hover:block"
+                          title="Forward message"
+                          onClick={(e) => { e.stopPropagation(); setForwardMessages([message]); setForwardModalOpen(true); }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l6-6m-6 6l6 6m6-6h6" />
+                          </svg>
+                        </button>
+                      )}
+                      {selectionMode && isOwn && (
+                        <button
+                          className={`absolute -left-7 top-1 w-5 h-5 rounded-full border-2 border-red-500 flex items-center justify-center ${isSelected ? 'bg-red-500' : 'bg-white'}`}
+                          onClick={(e) => { e.stopPropagation(); handleSelectMessage(message.id); }}
+                          tabIndex={0}
+                          aria-label={isSelected ? 'Deselect message' : 'Select message'}
+                        >
+                          {isSelected ? (
+                            <svg width="14" height="14" viewBox="0 0 20 20">
+                              <polyline points="4 11 8 15 16 6" fill="none" stroke="white" strokeWidth="2"/>
+                            </svg>
+                          ) : null}
+                        </button>
+                      )}
+                      {/* Message content rendering */}
+                      {message.type === 'image' ? (
+                        <img
+                          src={message.content}
+                          alt="sent media"
+                          className="max-w-[60vw] sm:max-w-[120px] max-h-24 rounded-md object-cover mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                          style={{ display: 'block' }}
+                          onClick={() => handleOpenMedia(message.content, 'image')}
+                        />
+                      ) : message.type === 'video' ? (
+                        <video
+                          src={message.content}
+                          controls
+                          className="max-w-[60vw] sm:max-w-[120px] max-h-24 rounded-md mb-1 border border-gray-200 dark:border-gray-700 cursor-pointer"
+                          style={{ display: 'block' }}
+                          onClick={() => handleOpenMedia(message.content, 'video')}
+                        />
+                      ) : (
+                        (() => {
+                          const urls = extractUrls(message.content);
+                          if (urls.length > 0) {
+                            return (
+                              <>
+                                <div className="text-sm leading-snug animate-fade-in break-words" dangerouslySetInnerHTML={{ __html: linkify(message.content) }} />
+                                <LinkPreview url={urls[0]} />
+                              </>
+                            );
+                          } else {
+                            return (
+                              <p className="text-sm leading-snug animate-fade-in break-words">{message.content}</p>
+                            );
+                          }
+                        })()
+                      )}
+                      <p className="text-xs mt-1 opacity-70 text-right">
                 {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
-            </div>
-          </motion.div>
-              </React.Fragment>
-            );
-          })
+                    </div>
+                  </motion.div>
+                );
+              })}
+              <div className="flex justify-center my-4">
+                <div className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300">
+                  {format(new Date(dayMessages[0].created_at), 'MMMM d, yyyy')}
+                </div>
+              </div>
+            </React.Fragment>
+          ))
         )}
         <div ref={messagesEndRef} />
         {/* Typing indicator */}
